@@ -252,24 +252,31 @@ def test_web_flow(wb_path, tmp_path):
     rv = client.post("/analyze", data={
         "ind_sheet": ["表1"], "ind_addr": ["B5"],
         "fb_sheet": ["表1"], "fb_addr": [""],
-    })
+    }, follow_redirects=True)
     assert rv.status_code == 200
     assert "复算核对".encode() in rv.data
-    rv = client.get("/download")
+    sub_ok = rv.request.path.split("/")[-1]
+    rv = client.get(f"/download/{sub_ok}")
     assert rv.status_code == 200
     assert rv.data[:2] == b"PK"
 
-    # 禁发场景：重新上传
+    # 禁发场景：重新上传（新 run，旧 run 仍保留在磁盘）
     with open(wb_path(), "rb") as fh:
         client.post("/upload", data={"workbook": (fh, "case2.xlsx")},
                     content_type="multipart/form-data")
     rv = client.post("/analyze", data={
         "ind_sheet": ["表1"], "ind_addr": ["B5"],
         "fb_sheet": ["表1"], "fb_addr": ["A1:A1"],
-    })
+    }, follow_redirects=True)
     assert "追溯未通过".encode() in rv.data
-    rv = client.get("/download")
-    assert rv.status_code == 404
+    sub_bad = rv.request.path.split("/")[-1]
+    assert sub_bad != sub_ok
+    # 本次失败提交无下载；此前通过的提交链接仍可下载原来那份
+    assert client.get(f"/download/{sub_bad}").status_code == 404
+    rv = client.get(f"/download/{sub_ok}")
+    assert rv.status_code == 200 and rv.data[:2] == b"PK"
+    # 旧的无 ID 下载入口已不存在
+    assert client.get("/download").status_code == 404
 
 
 def test_out_of_dimension_blank_reference(tmp_path):
@@ -311,6 +318,7 @@ def test_web_verify_failure_blocks_download(tmp_path):
     rv = client.post("/analyze", data={
         "ind_sheet": ["S"], "ind_addr": ["A2"],
         "fb_sheet": ["S"], "fb_addr": [""],
-    })
+    }, follow_redirects=True)
     assert "复算核对未通过".encode() in rv.data
-    assert client.get("/download").status_code == 404
+    sub_bad = rv.request.path.split("/")[-1]
+    assert client.get(f"/download/{sub_bad}").status_code == 404

@@ -8,7 +8,8 @@ services:
     environment:
       SECRET_KEY: "change-me-in-production"
     volumes:
-      - audit-runs:/app/instance/runs
+      # 整个实例目录入卷：底稿、各次提交产物与持久化 SECRET_KEY 均在重启后保留
+      - audit-instance:/app/instance
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
@@ -17,4 +18,4 @@ services:
       retries: 3
 
 volumes:
-  audit-runs:
+  audit-instance:
