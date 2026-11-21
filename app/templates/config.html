@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="card">
+  <h2>第二步：填写指标格与禁发区域 —— {{ filename }}</h2>
+  {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+  <p class="muted">
+    工作簿包含：
+    {% for s in sheet_info %}
+      <span class="tag">{{ s.name }}（{{ s.rows }} 行 × {{ s.cols }} 列）</span>
+    {% endfor %}
+  </p>
+  <form action="{{ url_for('analyze') }}" method="post">
+    <h2 style="margin-top:18px">指标格（带表名，如 表1!B5）</h2>
+    <table id="ind-table">
+      <thead><tr><th style="width:200px">工作表</th><th>单元格地址（A1，可带 $）</th><th class="row-actions">操作</th></tr></thead>
+      <tbody>
+      {% for r in indicators %}
+        <tr>
+          <td><select name="ind_sheet">
+            {% for s in sheet_info %}<option value="{{ s.name }}" {% if s.name==r.sheet %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+          </select></td>
+          <td><input type="text" name="ind_addr" value="{{ r.addr }}" placeholder="例如 B5 或 $C$12"></td>
+          <td class="row-actions"><button type="button" class="danger" onclick="rmRow(this)">删</button></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p><button type="button" class="gray" onclick="addRow('ind-table','ind')">+ 添加指标格</button></p>
+
+    <h2 style="margin-top:24px">禁发区域（带表名，支持矩形，如 表2!A1:D10）</h2>
+    <table id="fb-table">
+      <thead><tr><th style="width:200px">工作表</th><th>单元格或矩形区域</th><th class="row-actions">操作</th></tr></thead>
+      <tbody>
+      {% for r in forbidden %}
+        <tr>
+          <td><select name="fb_sheet">
+            {% for s in sheet_info %}<option value="{{ s.name }}" {% if s.name==r.sheet %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+          </select></td>
+          <td><input type="text" name="fb_addr" value="{{ r.addr }}" placeholder="例如 A1:D10 或 E8"></td>
+          <td class="row-actions"><button type="button" class="danger" onclick="rmRow(this)">删</button></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p><button type="button" class="gray" onclick="addRow('fb-table','fb')">+ 添加禁发区域</button></p>
+
+    <p style="margin-top:26px">
+      <button type="submit">逐层追溯并生成审计件</button>
+    </p>
+    <p class="muted">若追溯命中禁发格、循环引用或不支持内容，本页会给出指标原地址与出错引用链，且不会提供下载。</p>
+  </form>
+</div>
+
+<script>
+function addRow(tableId, prefix){
+  const tbody = document.querySelector('#' + tableId + ' tbody');
+  const tpl = tbody.querySelector('tr');
+  const tr = tpl.cloneNode(true);
+  tr.querySelector('input').value = '';
+  tbody.appendChild(tr);
+}
+function rmRow(btn){
+  const tbody = btn.closest('tbody');
+  if (tbody.querySelectorAll('tr').length > 1) {
+    btn.closest('tr').remove();
+  } else {
+    tbody.querySelector('input').value = '';
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+services:
+  audit-extract:
+    build: .
+    image: audit-extract:latest
+    container_name: audit-extract
+    ports:
+      - "8000:8000"
+    environment:
+      SECRET_KEY: "change-me-in-production"
+    volumes:
+      - audit-runs:/app/instance/runs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  audit-runs:

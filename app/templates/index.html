@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="card">
+  <h2>第一步：上传共用底稿（XLSX）</h2>
+  {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+  <div class="hint">
+    限制：工作簿至多 6 张表；每张表至多 200 行 × 40 列；文件不超过 8 MB。<br>
+    公式仅支持四则运算、工作簿内 A1 单格引用（含 $A$1 绝对地址）以及对单个矩形区域的 SUM。
+  </div>
+  <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data">
+    <p><input type="file" name="workbook" accept=".xlsx" required></p>
+    <p><button type="submit">上传并继续</button></p>
+  </form>
+</div>
+{% endblock %}

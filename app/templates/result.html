@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block body %}
+{% if not ok %}
+<div class="card">
+  <h2>追溯未通过 —— 本次不提供下载</h2>
+  {% if fatal %}<div class="error-box">{{ fatal }}</div>{% endif %}
+  <table>
+    <thead><tr><th style="width:170px">指标原地址</th><th style="width:90px">错误类型</th><th>说明与出错引用链</th></tr></thead>
+    <tbody>
+    {% for e in result.errors %}
+      <tr>
+        <td class="chain">{{ e.indicator_text }}</td>
+        <td>
+          {% if e.kind == 'forbidden' %}禁发
+          {% elif e.kind == 'cycle' %}循环引用
+          {% elif e.kind == 'unsupported' %}不支持内容
+          {% elif e.kind == 'dimension' %}越界
+          {% elif e.kind == 'text' %}文本
+          {% else %}{{ e.kind }}{% endif %}
+        </td>
+        <td>
+          <div>{{ e.message }}</div>
+          <div class="chain muted">引用链：{{ e.chain_text }}</div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p style="margin-top:18px"><a class="btn" href="{{ url_for('index') }}">重新上传</a></p>
+</div>
+{% else %}
+<div class="card">
+  <div class="ok-box">追溯与复算核对全部通过，可下载审计件。</div>
+  <h2>指标新旧地址对照</h2>
+  <table>
+    <thead><tr><th>指标</th><th>原地址</th><th>新文件地址</th></tr></thead>
+    <tbody>
+    {% for old, new in extract.indicator_mapping %}
+      <tr><td>指标 {{ loop.index }}</td><td class="chain">{{ old }}</td><td class="chain">{{ new }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h2 style="margin-top:22px">复算核对</h2>
+  <table>
+    <thead><tr><th>指标原地址</th><th>原工作簿复算值</th><th>新工作簿复算值</th><th>是否一致</th></tr></thead>
+    <tbody>
+    {% for addr, oldv, newv, same in extract.verify %}
+      <tr>
+        <td class="chain">{{ addr }}</td>
+        <td>{{ oldv }}</td><td>{{ newv }}</td>
+        <td>{% if same %}<span style="color:#1e7e46">一致</span>{% else %}<span style="color:#c0392b">不一致</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h2 style="margin-top:22px">新文件布局（各表仅保留所需行列）</h2>
+  <table>
+    <thead><tr><th>工作表</th><th>保留原列号</th><th>保留原行号</th></tr></thead>
+    <tbody>
+    {% for name, (rows, cols) in layout.items() %}
+      {% if rows %}
+      <tr>
+        <td>{{ name }}</td>
+        <td class="chain">{{ cols | join(', ') }}</td>
+        <td class="chain">{{ rows | join(', ') }}</td>
+      </tr>
+      {% else %}
+      <tr><td>{{ name }}</td><td colspan="2" class="muted">无所需单元格，整表删除</td></tr>
+      {% endif %}
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <p style="margin-top:20px">
+    <a class="btn" href="{{ url_for('download') }}">下载审计件 audit_extract.xlsx</a>
+    <a class="btn" style="background:#5b6b82" href="{{ url_for('index') }}">处理新文件</a>
+  </p>
+</div>
+{% endif %}
+{% endblock %}
